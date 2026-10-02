@@ -1,7 +1,7 @@
 import { daysBetween, shortDate, timeAgo } from "@/lib/dates";
 import { getDestinations, getFares, getLastChecked } from "@/lib/store";
 import type { Destination, Fare } from "@/lib/types";
-import { AddForm, RefreshButton, RemoveButton } from "./controls";
+import { AddForm, Countdown, RefreshButton, RemoveButton } from "./controls";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +14,14 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8">
+      <p className="mb-6 text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">Flight Radar</p>
       <header className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Toronto → anywhere</h1>
           <p className="mt-1 text-sm text-zinc-400">
             {lastChecked ? `last checked ${timeAgo(lastChecked)}` : "not checked yet"}
           </p>
+          <Countdown />
         </div>
         <RefreshButton />
       </header>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CRON_HOUR_UTC } from "@/lib/config";
 import { useFormStatus } from "react-dom";
 import { refreshNow } from "./actions";
 
@@ -22,6 +23,29 @@ function RefreshSubmit() {
     >
       {pending ? "Refreshing…" : "Refresh now"}
     </button>
+  );
+}
+
+// Counts down to the next daily cron run. Renders nothing until mounted so the
+// server and client HTML match.
+export function Countdown() {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (now === null) return <p className="text-sm text-zinc-500">&nbsp;</p>;
+
+  const next = new Date(now);
+  next.setUTCHours(CRON_HOUR_UTC, 0, 0, 0);
+  if (next.getTime() <= now) next.setUTCDate(next.getUTCDate() + 1);
+  const secs = Math.floor((next.getTime() - now) / 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <p className="text-sm tabular-nums text-zinc-500">
+      next auto-refresh in {Math.floor(secs / 3600)}:{pad(Math.floor(secs / 60) % 60)}:{pad(secs % 60)}
+    </p>
   );
 }
 
