@@ -1,19 +1,23 @@
+import { STAYS } from "@/lib/config";
 import { daysBetween, shortDate, timeAgo } from "@/lib/dates";
 import { getDestinations, getFares, getLastChecked } from "@/lib/store";
-import type { Destination, Fare } from "@/lib/types";
+import type { Destination, Fare, FareSet } from "@/lib/types";
 import { AddForm, Countdown, RefreshButton, RemoveButton } from "./controls";
 
 export const dynamic = "force-dynamic";
+
+const cheapest = (fares: FareSet | null) =>
+  Math.min(...STAYS.map((s) => fares?.[s.key]?.price ?? Infinity));
 
 export default async function Home() {
   const destinations = await getDestinations();
   const [fares, lastChecked] = await Promise.all([getFares(destinations.map((d) => d.iata)), getLastChecked()]);
   const rows = destinations
-    .map((d, i) => ({ d, fare: fares[i] }))
-    .sort((a, b) => (a.fare?.price ?? Infinity) - (b.fare?.price ?? Infinity));
+    .map((d, i) => ({ d, fares: fares[i] }))
+    .sort((a, b) => cheapest(a.fares) - cheapest(b.fares));
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 py-8">
       <p className="mb-6 text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">Flight Radar</p>
       <header className="mb-6 flex items-end justify-between gap-4">
         <div>
@@ -26,11 +30,30 @@ export default async function Home() {
         <RefreshButton />
       </header>
 
+      <div className="grid grid-cols-3 gap-2 pb-2">
+        {STAYS.map((s) => (
+          <p key={s.key} className="px-2 text-xs text-zinc-500">
+            <span className="font-semibold uppercase tracking-wider text-zinc-300">{s.label}</span>
+            <br />
+            {s.minNights}–{s.maxNights} nights
+          </p>
+        ))}
+      </div>
+
       <ul className="divide-y divide-zinc-800 border-y border-zinc-800">
-        {rows.map(({ d, fare }) => (
-          <li key={d.iata} className="flex items-center">
-            <Row d={d} fare={fare} />
-            <RemoveButton iata={d.iata} />
+        {rows.map(({ d, fares }) => (
+          <li key={d.iata} className="py-3">
+            <div className="flex items-center justify-between">
+              <p className="truncate font-medium">
+                {d.label} <span className="text-zinc-500">{d.iata}</span>
+              </p>
+              <RemoveButton iata={d.iata} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {STAYS.map((s) => (
+                <Cell key={s.key} fare={fares?.[s.key] ?? null} />
+              ))}
+            </div>
           </li>
         ))}
         {rows.length === 0 && <li className="py-6 text-center text-zinc-500">No destinations yet.</li>}
@@ -41,19 +64,9 @@ export default async function Home() {
   );
 }
 
-function Row({ d, fare }: { d: Destination; fare: Fare | null }) {
-  const city = (
-    <p className="truncate font-medium">
-      {d.label} <span className="text-zinc-500">{d.iata}</span>
-    </p>
-  );
+function Cell({ fare }: { fare: Fare | null }) {
   if (!fare) {
-    return (
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 py-4 pl-1">
-        {city}
-        <span className="text-sm text-zinc-500">No fare found</span>
-      </div>
-    );
+    return <p className="rounded-md px-2 py-2 text-sm text-zinc-600">No fare found</p>;
   }
   const nights = daysBetween(fare.departDate, fare.returnDate);
   const stops = fare.stops === 0 ? "nonstop" : `${fare.stops} stop${fare.stops > 1 ? "s" : ""}`;
@@ -62,20 +75,20 @@ function Row({ d, fare }: { d: Destination; fare: Fare | null }) {
       href={fare.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex min-w-0 flex-1 items-center justify-between gap-3 py-4 pl-1 hover:bg-zinc-900"
+      className="min-w-0 rounded-md px-2 py-2 hover:bg-zinc-900"
     >
-      <div className="min-w-0">
-        {city}
-        <p className="text-sm text-zinc-300">
-          {shortDate(fare.departDate)} → {shortDate(fare.returnDate)} · {nights} night{nights === 1 ? "" : "s"}
-        </p>
-        <p className="text-xs text-zinc-500">
-          {fare.originAirport} · {fare.airline} · {stops}
-        </p>
-      </div>
-      <p className="shrink-0 text-2xl font-semibold tabular-nums">
+      <p className="text-xl font-semibold tabular-nums">
         ${Math.round(fare.price).toLocaleString("en-US")}
         <span className="ml-1 text-xs font-normal text-zinc-500">{fare.currency}</span>
+      </p>
+      <p className="truncate text-xs text-zinc-300">
+        {shortDate(fare.departDate)} → {shortDate(fare.returnDate)}
+      </p>
+      <p className="truncate text-xs text-zinc-500">
+        {nights}n · {stops}
+      </p>
+      <p className="truncate text-xs text-zinc-500">
+        {fare.originAirport} · {fare.airline}
       </p>
     </a>
   );

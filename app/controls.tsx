@@ -62,7 +62,7 @@ export function RemoveButton({ iata }: { iata: string }) {
       onClick={remove}
       disabled={busy}
       aria-label={`Remove ${iata}`}
-      className="px-3 py-4 text-lg text-zinc-600 hover:text-zinc-200 disabled:opacity-30"
+      className="px-2 py-1 text-lg text-zinc-600 hover:text-zinc-200 disabled:opacity-30"
     >
       ×
     </button>

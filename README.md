@@ -1,7 +1,8 @@
 # Flight Radar
 
 Cheapest round trip from Toronto (YYZ/YTZ) to a list of destinations, departing in
-the next 14 days, 2–5 nights. Tunables live in `lib/config.ts`.
+the next 14 days, in three stay buckets: short (2–5 nights), medium (6–14) and long
+(15–30). Tunables live in `lib/config.ts`.
 
 ## Setup
 
@@ -27,11 +28,13 @@ the next 14 days, 2–5 nights. Tunables live in `lib/config.ts`.
 ## Local dev
 
 `npm run dev` (uses `.env.local`, same Redis as production).
-`npm run check-fare JFK` prints the raw API response and the parsed fare.
+`npm run check-fare JFK` prints the raw API response and the parsed fare per bucket.
 Manual cron trigger: `curl -H "Authorization: Bearer $CRON_SECRET" https://<app>/api/refresh`.
 
 ## Notes
 
 - Prices come from Travelpayouts' cache of real searches, so quiet routes may show
-  "No fare found". Market is `ca`, currency CAD.
+  "No fare found" in some buckets. Market is `ca`, currency CAD.
+- All three buckets share one set of API calls per destination (one per departure
+  month × return month); the results are split by trip length.
 - The add/remove endpoints are open (no auth), as is the page.

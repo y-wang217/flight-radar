@@ -1,6 +1,6 @@
 import { CURRENCY, MARKET } from "../config";
-import { addDays, daysBetween } from "../dates";
-import type { Fare, SearchWindow } from "../types";
+import { addDays, daysBetween, monthsBetween } from "../dates";
+import type { DepartureWindow, Fare, FareSet, Stay } from "../types";
 import type { FareProvider } from "./index";
 
 // Docs: https://support.travelpayouts.com/hc/en-us/articles/203956163-Aviasales-Data-API
@@ -18,7 +18,7 @@ export type Ticket = {
 };
 
 // One call per (departure month, return month) pair; the API caches by month,
-// so we ask for whole months and filter to the exact window ourselves.
+// so we ask for whole months and filter to the exact window and stay ourselves.
 export async function fetchPrices(origin: string, dest: string, departMonth: string, returnMonth: string) {
   const token = process.env.TRAVELPAYOUTS_TOKEN;
   if (!token) throw new Error("TRAVELPAYOUTS_TOKEN is not set");
@@ -43,10 +43,12 @@ export async function fetchPrices(origin: string, dest: string, departMonth: str
   return body as { success: true; currency: string; data: Ticket[] };
 }
 
-export function monthPairs(w: SearchWindow): [string, string][] {
-  const months = (from: string, to: string) => [...new Set([from.slice(0, 7), to.slice(0, 7)])];
-  const departs = months(w.from, w.to);
-  const returns = months(addDays(w.from, w.minNights), addDays(w.to, w.maxNights));
+// Covers every return date any stay bucket could need, so all buckets share one set of calls.
+export function monthPairs(w: DepartureWindow, stays: readonly Stay[]): [string, string][] {
+  const minNights = Math.min(...stays.map((s) => s.minNights));
+  const maxNights = Math.max(...stays.map((s) => s.maxNights));
+  const departs = monthsBetween(w.from, w.to);
+  const returns = monthsBetween(addDays(w.from, minNights), addDays(w.to, maxNights));
   return departs.flatMap((d) => returns.filter((r) => r >= d).map((r): [string, string] => [d, r]));
 }
 
@@ -74,16 +76,23 @@ export function toFare(t: Ticket, dest: string, currency: string): Fare {
 }
 
 export const travelpayouts: FareProvider = {
-  async getLowestFare(origin, dest, w) {
-    const responses = await Promise.all(monthPairs(w).map(([d, r]) => fetchPrices(origin, dest, d, r)));
-    let best: Ticket | null = null;
+  async getLowestFares(origin, dest, w, stays) {
+    const pairs = monthPairs(w, stays);
+    const responses = await Promise.all(pairs.map(([d, r]) => fetchPrices(origin, dest, d, r)));
+    const best = new Map<Stay["key"], Ticket>();
     for (const t of responses.flatMap((r) => r.data)) {
       if (!t.return_at) continue;
       const depart = t.departure_at.slice(0, 10);
+      if (depart < w.from || depart > w.to) continue;
       const nights = daysBetween(depart, t.return_at.slice(0, 10));
-      const fits = depart >= w.from && depart <= w.to && nights >= w.minNights && nights <= w.maxNights;
-      if (fits && (!best || t.price < best.price)) best = t;
+      const stay = stays.find((s) => nights >= s.minNights && nights <= s.maxNights);
+      if (stay && (!best.has(stay.key) || t.price < best.get(stay.key)!.price)) best.set(stay.key, t);
     }
-    return best ? toFare(best, dest, responses[0].currency) : null;
+    const fares = {} as FareSet;
+    for (const s of stays) {
+      const t = best.get(s.key);
+      fares[s.key] = t ? toFare(t, dest, responses[0].currency) : null;
+    }
+    return fares;
   },
 };

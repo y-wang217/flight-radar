@@ -1,8 +1,8 @@
-import type { Fare, SearchWindow } from "../types";
+import type { DepartureWindow, FareSet, Stay } from "../types";
 import { travelpayouts } from "./travelpayouts";
 
 export interface FareProvider {
-  getLowestFare(origin: string, dest: string, window: SearchWindow): Promise<Fare | null>;
+  getLowestFares(origin: string, dest: string, window: DepartureWindow, stays: readonly Stay[]): Promise<FareSet>;
 }
 
 // Swap the provider here (e.g. SerpApi Google Flights) without touching callers.

@@ -1,5 +1,5 @@
-import { MAX_NIGHTS, MIN_NIGHTS, TIME_ZONE, WINDOW_DAYS } from "./config";
-import type { SearchWindow } from "./types";
+import { TIME_ZONE, WINDOW_DAYS } from "./config";
+import type { DepartureWindow } from "./types";
 
 // All dates are plain YYYY-MM-DD strings; arithmetic is done in UTC to avoid DST drift.
 export function addDays(date: string, days: number): string {
@@ -16,9 +16,16 @@ export function today(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
 }
 
-export function searchWindow(): SearchWindow {
+export function departureWindow(): DepartureWindow {
   const from = today();
-  return { from, to: addDays(from, WINDOW_DAYS), minNights: MIN_NIGHTS, maxNights: MAX_NIGHTS };
+  return { from, to: addDays(from, WINDOW_DAYS) };
+}
+
+// Every YYYY-MM from the month of `from` to the month of `to`, inclusive.
+export function monthsBetween(from: string, to: string): string[] {
+  const months: string[] = [];
+  for (let m = from.slice(0, 7); m <= to.slice(0, 7); m = addDays(`${m}-01`, 32).slice(0, 7)) months.push(m);
+  return months;
 }
 
 // "Oct 9"

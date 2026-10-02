@@ -12,5 +12,11 @@ export type Fare = {
   checkedAt: string; // ISO timestamp
 };
 
-// Inclusive departure date range plus allowed trip lengths.
-export type SearchWindow = { from: string; to: string; minNights: number; maxNights: number };
+// Inclusive departure date range.
+export type DepartureWindow = { from: string; to: string };
+
+export type StayKey = "short" | "medium" | "long";
+export type Stay = { key: StayKey; label: string; minNights: number; maxNights: number }; // nights inclusive
+
+// Cheapest fare per stay bucket; null when nothing in the cache fits.
+export type FareSet = Record<StayKey, Fare | null>;
