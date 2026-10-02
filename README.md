@@ -28,7 +28,9 @@ the next 14 days, in three stay buckets: short (2–5 nights), medium (6–14) a
 ## Local dev
 
 `npm run dev` (uses `.env.local`, same Redis as production).
-`npm run check-fare JFK` prints the raw API response and the parsed fare per bucket.
+`npm run check-fare JFK` shows how many cached tickets were dropped (one-way, outside the
+departure window, stay outside every bucket) vs. landed in each bucket; add `--raw` for the
+full API responses.
 Manual cron trigger: `curl -H "Authorization: Bearer $CRON_SECRET" https://<app>/api/refresh`.
 
 ## Notes
