@@ -75,17 +75,25 @@ export function toFare(t: Ticket, dest: string, currency: string): Fare {
   };
 }
 
+// The stay bucket a ticket belongs to, or why it's dropped. The only filter between
+// the API response and the table, so check-fare can report where tickets go.
+export type Drop = "one-way" | "outside window" | "no bucket";
+export function classify(t: Ticket, w: DepartureWindow, stays: readonly Stay[]): Stay["key"] | Drop {
+  if (!t.return_at) return "one-way";
+  const depart = t.departure_at.slice(0, 10);
+  if (depart < w.from || depart > w.to) return "outside window";
+  const nights = daysBetween(depart, t.return_at.slice(0, 10));
+  return stays.find((s) => nights >= s.minNights && nights <= s.maxNights)?.key ?? "no bucket";
+}
+
 export const travelpayouts: FareProvider = {
   async getLowestFares(origin, dest, w, stays) {
     const pairs = monthPairs(w, stays);
     const responses = await Promise.all(pairs.map(([d, r]) => fetchPrices(origin, dest, d, r)));
     const best = new Map<Stay["key"], Ticket>();
     for (const t of responses.flatMap((r) => r.data)) {
-      if (!t.return_at) continue;
-      const depart = t.departure_at.slice(0, 10);
-      if (depart < w.from || depart > w.to) continue;
-      const nights = daysBetween(depart, t.return_at.slice(0, 10));
-      const stay = stays.find((s) => nights >= s.minNights && nights <= s.maxNights);
+      const key = classify(t, w, stays);
+      const stay = stays.find((s) => s.key === key);
       if (stay && (!best.has(stay.key) || t.price < best.get(stay.key)!.price)) best.set(stay.key, t);
     }
     const fares = {} as FareSet;
