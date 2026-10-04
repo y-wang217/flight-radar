@@ -40,3 +40,9 @@ Manual cron trigger: `curl -H "Authorization: Bearer $CRON_SECRET" https://<app>
 - All three buckets share one set of API calls per destination (one per departure
   month × return month); the results are split by trip length.
 - The add/remove endpoints are open (no auth), as is the page.
+- **Price history is per browser.** Each page load records the fares shown into SQLite
+  running in the browser (sql.js, saved to IndexedDB), one row per destination, bucket
+  and day. Cells show the change vs. the last earlier day this browser saw, and rows get
+  a "history" table once two days exist. Days you don't open the page are gaps, and
+  other devices have their own history. `npm install` copies the sql.js wasm into
+  `public/` (postinstall).

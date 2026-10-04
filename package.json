@@ -7,19 +7,22 @@
     "build": "next build",
     "start": "next start",
     "seed": "node --env-file-if-exists=.env.local --import tsx scripts/seed.ts",
-    "check-fare": "node --env-file-if-exists=.env.local --import tsx scripts/check-fare.ts"
+    "check-fare": "node --env-file-if-exists=.env.local --import tsx scripts/check-fare.ts",
+    "postinstall": "mkdir -p public && cp node_modules/sql.js/dist/sql-wasm-browser.wasm public/"
   },
   "dependencies": {
     "@upstash/redis": "^1.39.0",
     "next": "^16.3.8",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/sql.js": "^1.4.11",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"

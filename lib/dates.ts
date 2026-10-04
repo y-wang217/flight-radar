@@ -41,3 +41,8 @@ export function timeAgo(iso: string): string {
   if (hours < 48) return `${hours} h ago`;
   return `${Math.round(hours / 24)} days ago`;
 }
+
+// The Toronto calendar day an ISO timestamp falls on.
+export function localDay(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date(iso));
+}
